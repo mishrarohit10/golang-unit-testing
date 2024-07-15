@@ -49,54 +49,91 @@ func TestGetItemsWithGoConvey(t *testing.T) {
 }
 
 func TestGetItemWithGoConvey(t *testing.T) {
-	convey.Convey("Given a running server", t, func() {
-		router := setupRouter()
+    convey.Convey("Given a running server", t, func() {
+        router := setupRouter()
 
-		convey.Convey("When GET /items/1 is called", func() {
-			req, _ := http.NewRequest("GET", "/items/1", nil)
-			resp := httptest.NewRecorder()
-			router.ServeHTTP(resp, req)
+        convey.Convey("When GET /items/1 is called", func() {
+            req, _ := http.NewRequest("GET", "/items/1", nil)
+            resp := httptest.NewRecorder()
+            router.ServeHTTP(resp, req)
 
-			convey.Convey("Then the status code should be 200 OK", func() {
-				convey.So(resp.Code, convey.ShouldEqual, http.StatusOK)
+            convey.Convey("Then the status code should be 200 OK", func() {
+                convey.So(resp.Code, convey.ShouldEqual, http.StatusOK)
 
-				convey.Convey("And the response should be the item 1", func() {
-					var item Item
-					err := json.Unmarshal(resp.Body.Bytes(), &item)
-					convey.So(err, convey.ShouldBeNil)
-					convey.So(item.ID, convey.ShouldEqual, "1")
-					convey.So(item.Name, convey.ShouldEqual, "Item 1")
-				})
-			})
-		})
-	})
+                convey.Convey("And the response should be the item 1", func() {
+                    var item Item
+                    err := json.Unmarshal(resp.Body.Bytes(), &item)
+                    convey.So(err, convey.ShouldBeNil)
+                    convey.So(item.ID, convey.ShouldEqual, "1")
+                    convey.So(item.Name, convey.ShouldEqual, "Item 1")
+                })
+            })
+        })
+
+        convey.Convey("When GET /items/999 is called (non-existent ID)", func() {
+            req, _ := http.NewRequest("GET", "/items/999", nil)
+            resp := httptest.NewRecorder()
+            router.ServeHTTP(resp, req)
+
+            convey.Convey("Then the status code should be 404 Not Found", func() {
+                convey.So(resp.Code, convey.ShouldEqual, http.StatusNotFound)
+
+                convey.Convey("And the response should contain an error message", func() {
+                    var errorResponse map[string]string
+                    err := json.Unmarshal(resp.Body.Bytes(), &errorResponse)
+                    convey.So(err, convey.ShouldBeNil)
+                    convey.So(errorResponse["message"], convey.ShouldEqual, "Item not found")
+                })
+            })
+        })
+    })
 }
 
 func TestCreateItemWithGoConvey(t *testing.T) {
-	convey.Convey("Given a running server", t, func() {
-		router := setupRouter()
+    convey.Convey("Given a running server", t, func() {
+        router := setupRouter()
 
-		convey.Convey("When POST /items with a new item is called", func() {
-			newItem := Item{ID: "2", Name: "Item 2"}
-			jsonValue, _ := json.Marshal(newItem)
-			req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonValue))
-			req.Header.Set("Content-Type", "application/json")
-			resp := httptest.NewRecorder()
-			router.ServeHTTP(resp, req)
+        convey.Convey("When POST /items with a new item is called", func() {
+            newItem := Item{ID: "2", Name: "Item 2"}
+            jsonValue, _ := json.Marshal(newItem)
+            req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonValue))
+            req.Header.Set("Content-Type", "application/json")
+            resp := httptest.NewRecorder()
+            router.ServeHTTP(resp, req)
 
-			convey.Convey("Then the status code should be 201 Created", func() {
-				convey.So(resp.Code, convey.ShouldEqual, http.StatusCreated)
+            convey.Convey("Then the status code should be 201 Created", func() {
+                convey.So(resp.Code, convey.ShouldEqual, http.StatusCreated)
 
-				convey.Convey("And the response should be the new item", func() {
-					var item Item
-					err := json.Unmarshal(resp.Body.Bytes(), &item)
-					convey.So(err, convey.ShouldBeNil)
-					convey.So(item.ID, convey.ShouldEqual, newItem.ID)
-					convey.So(item.Name, convey.ShouldEqual, newItem.Name)
-				})
-			})
-		})
-	})
+                convey.Convey("And the response should be the new item", func() {
+                    var item Item
+                    err := json.Unmarshal(resp.Body.Bytes(), &item)
+                    convey.So(err, convey.ShouldBeNil)
+                    convey.So(item.ID, convey.ShouldEqual, newItem.ID)
+                    convey.So(item.Name, convey.ShouldEqual, newItem.Name)
+                })
+            })
+        })
+
+        convey.Convey("When POST /items with invalid data is called", func() {
+            invalidItem := map[string]string{"invalid": "data"}
+            jsonValue, _ := json.Marshal(invalidItem)
+            req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonValue))
+            req.Header.Set("Content-Type", "application/json")
+            resp := httptest.NewRecorder()
+            router.ServeHTTP(resp, req)
+
+            convey.Convey("Then the status code should be 400 Bad Request", func() {
+                convey.So(resp.Code, convey.ShouldEqual, http.StatusBadRequest)
+
+                convey.Convey("And the response should contain an error message", func() {
+                    var errorResponse map[string]string
+                    err := json.Unmarshal(resp.Body.Bytes(), &errorResponse)
+                    convey.So(err, convey.ShouldBeNil)
+                    convey.So(errorResponse["message"], convey.ShouldEqual, "Could not create new item")
+                })
+            })
+        })
+    })
 }
 
 func TestUpdateItemWithGoConvey(t *testing.T) {
